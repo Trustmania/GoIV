@@ -55,7 +55,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/colorPrimary"
-                android:text="XX"
+                android:text=""
                 android:maxLength="4"
                 android:minWidth="80dp"
                 android:textAlignment="center"
@@ -87,7 +87,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/colorPrimary"
                 android:minWidth="80dp"
-                android:text="XX"
+                android:text=""
                 android:maxLength="4"
                 android:textAlignment="center"
                 android:inputType="number"/>

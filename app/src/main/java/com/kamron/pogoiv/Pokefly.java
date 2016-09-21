@@ -24,7 +24,9 @@ import android.os.IBinder;
 import android.support.annotation.ColorInt;
 import android.support.annotation.ColorRes;
 import android.support.annotation.DrawableRes;
+import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -80,6 +82,8 @@ import io.apptik.widget.MultiSlider;
 
 public class Pokefly extends Service {
 
+    public static final String ACTION_UPDATE_UI = "com.kamron.pogoiv.ACTION_UPDATE_UI";
+    public static final String ACTION_STOP = "com.kamron.pogoiv.ACTION_STOP";
     private static final String ACTION_SEND_INFO = "com.kamron.pogoiv.ACTION_SEND_INFO";
 
     private static final String KEY_TRAINER_LEVEL = "key_trainer_level";
@@ -95,11 +99,13 @@ public class Pokefly extends Service {
 
     private static final String ACTION_PROCESS_BITMAP = "com.kamron.pogoiv.PROCESS_BITMAP";
     private static final String KEY_BITMAP = "bitmap";
-    private static final String KEY_SS_FILE = "ss-file";
+    private static final String KEY_SCREENSHOT_FILE = "ss-file";
 
     private static final String PREF_USER_CORRECTIONS = "com.kamron.pogoiv.USER_CORRECTIONS";
 
     private static final int NOTIFICATION_REQ_CODE = 8959;
+
+    private static boolean running = false;
 
     private int trainerLevel = -1;
     private boolean batterySaver = false;
@@ -262,7 +268,7 @@ public class Pokefly extends Service {
     private Optional<Integer> pokemonCP = Optional.absent();
     private Optional<Integer> pokemonHP = Optional.absent();
     private double estimatedPokemonLevel = 1.0;
-    private String ssFile;
+    private @NonNull Optional<String> screenShotPath = Optional.absent();
 
     private PokemonNameCorrector corrector;
 
@@ -290,6 +296,10 @@ public class Pokefly extends Service {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT);
 
+    public static boolean isRunning() {
+        return running;
+    }
+
     public static Intent createIntent(Activity activity, int trainerLevel, int statusBarHeight, boolean batterySaver) {
         Intent intent = new Intent(activity, Pokefly.class);
         intent.putExtra(KEY_TRAINER_LEVEL, trainerLevel);
@@ -302,21 +312,19 @@ public class Pokefly extends Service {
         return new Intent(ACTION_SEND_INFO);
     }
 
-    public static void populateInfoIntent(Intent intent, ScanResult scanResult, String filePath) {
+    public static void populateInfoIntent(Intent intent, ScanResult scanResult, @NonNull Optional<String> filePath) {
         intent.putExtra(KEY_SEND_INFO_NAME, scanResult.getPokemonName());
         intent.putExtra(KEY_SEND_INFO_CANDY, scanResult.getCandyName());
         intent.putExtra(KEY_SEND_INFO_HP, scanResult.getPokemonHP());
         intent.putExtra(KEY_SEND_INFO_CP, scanResult.getPokemonCP());
         intent.putExtra(KEY_SEND_INFO_LEVEL, scanResult.getEstimatedPokemonLevel());
-        if (!filePath.isEmpty()) {
-            intent.putExtra(KEY_SEND_SCREENSHOT_FILE, filePath);
-        }
+        intent.putExtra(KEY_SEND_SCREENSHOT_FILE, filePath);
     }
 
     public static Intent createProcessBitmapIntent(Bitmap bitmap, String file) {
         Intent intent = new Intent(ACTION_PROCESS_BITMAP);
         intent.putExtra(KEY_BITMAP, bitmap);
-        intent.putExtra(KEY_SS_FILE, file);
+        intent.putExtra(KEY_SCREENSHOT_FILE, file);
         return intent;
     }
 
@@ -329,6 +337,11 @@ public class Pokefly extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        running = true;
+
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(ACTION_UPDATE_UI));
+
         displayMetrics = this.getResources().getDisplayMetrics();
         initOcr();
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -356,11 +369,23 @@ public class Pokefly extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && intent.hasExtra(KEY_TRAINER_LEVEL)) {
+        if (intent == null) {
+            return START_STICKY;
+        }
+
+        running = true;
+
+        if (ACTION_STOP.equals(intent.getAction())) {
+            if (screen != null) {
+                screen.exit();
+            }
+            stopSelf();
+
+        } else if (intent.hasExtra(KEY_TRAINER_LEVEL)) {
             trainerLevel = intent.getIntExtra(KEY_TRAINER_LEVEL, 1);
             statusBarHeight = intent.getIntExtra(KEY_STATUS_BAR_HEIGHT, 0);
             batterySaver = intent.getBooleanExtra(KEY_BATTERY_SAVER, false);
-            makeNotification(this);
+            makeNotification();
             createInfoLayout();
             createIVButton();
             createArcPointer();
@@ -473,43 +498,65 @@ public class Pokefly extends Service {
 
     @Override
     public void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(displayInfo);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(processBitmap);
+
         if (!batterySaver) {
             unwatchScreen();
         } else {
             screenShotHelper.stop();
             screenShotHelper = null;
         }
-
-        super.onDestroy();
         setIVButtonDisplay(false);
         hideInfoLayoutArcPointer();
-        stopForeground(true);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(displayInfo);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(processBitmap);
 
         ocr.exit();
         //Now ocr contains an invalid instance hence let's clear it.
         ocr = null;
+
+        running = false;
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(ACTION_UPDATE_UI));
+
+        super.onDestroy();
     }
 
     /**
      * Creates the GoIV notification.
      */
-    private void makeNotification(Context context) {
-        Intent intent = new Intent(context, MainActivity.class);
+    private void makeNotification() {
+        Intent openAppIntent = new Intent(this, MainActivity.class);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                NOTIFICATION_REQ_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent openAppPendingIntent = PendingIntent.getActivity(
+                this, 0, openAppIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Notification.Builder builder = new Notification.Builder(context)
-                .setContentTitle(String.format(getString(R.string.notification_title), trainerLevel))
-                .setContentText(getString(R.string.notification_text))
+        NotificationCompat.Action openAppAction = new NotificationCompat.Action.Builder(
+                android.R.drawable.ic_menu_more,
+                getString(R.string.notification_open_app),
+                openAppPendingIntent).build();
+
+        Intent stopServiceIntent = new Intent(this, Pokefly.class);
+        stopServiceIntent.setAction(ACTION_STOP);
+
+        PendingIntent stopServicePendingIntent = PendingIntent.getService(
+                this, 0, stopServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Action stopServiceAction = new NotificationCompat.Action.Builder(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                getString(R.string.main_stop),
+                stopServicePendingIntent).build();
+
+        Notification notification = new NotificationCompat.Builder(this)
+                .setOngoing(true)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setColor(getColorC(R.color.colorPrimary))
                 .setSmallIcon(R.drawable.notification_icon)
-                .setContentIntent(pendingIntent);
-        Notification n = builder.build();
+                .setContentTitle(getString(R.string.notification_title, trainerLevel))
+                .setContentIntent(openAppPendingIntent)
+                .addAction(openAppAction)
+                .addAction(stopServiceAction)
+                .build();
 
-        n.flags |= Notification.FLAG_NO_CLEAR | Notification.FLAG_ONGOING_EVENT;
-        startForeground(NOTIFICATION_REQ_CODE, n);
+        startForeground(NOTIFICATION_REQ_CODE, notification);
     }
 
     /**
@@ -999,9 +1046,9 @@ public class Pokefly extends Service {
      * screenshot, and then deletes the screenshot.
      */
     private void deleteScreenShotIfRequired() {
-        if (batterySaver && !ssFile.isEmpty()) {
+        if (batterySaver && screenShotPath.isPresent()) {
             if (GoIVSettings.getInstance(getBaseContext()).shouldDeleteScreenshots()) {
-                screenShotHelper.deleteScreenShot(ssFile);
+                screenShotHelper.deleteScreenShot(screenShotPath.get());
             }
         }
     }
@@ -1533,10 +1580,10 @@ public class Pokefly extends Service {
      * scanPokemon
      * Performs OCR on an image of a pokemon and sends the pulled info to PokeFly to display.
      *
-     * @param pokemonImage The image of the pokemon
-     * @param filePath     The screenshot path if it is a file, used to delete once checked
+     * @param pokemonImage   The image of the pokemon
+     * @param screenShotPath The screenshot path if it is a file, used to delete once checked
      */
-    private void scanPokemon(Bitmap pokemonImage, String filePath) {
+    private void scanPokemon(Bitmap pokemonImage, @NonNull Optional<String> screenShotPath) {
         //WARNING: this method *must* always send an intent at the end, no matter what, to avoid the application
         // hanging.
         Intent info = Pokefly.createNoInfoIntent();
@@ -1545,7 +1592,7 @@ public class Pokefly extends Service {
             if (res.isFailed()) {
                 Toast.makeText(Pokefly.this, getString(R.string.scan_pokemon_failed), Toast.LENGTH_SHORT).show();
             }
-            Pokefly.populateInfoIntent(info, res, filePath);
+            Pokefly.populateInfoIntent(info, res, screenShotPath);
         } finally {
             LocalBroadcastManager.getInstance(Pokefly.this).sendBroadcast(info);
         }
@@ -1559,7 +1606,7 @@ public class Pokefly extends Service {
         if (bmp == null) {
             return;
         }
-        scanPokemon(bmp, "");
+        scanPokemon(bmp, Optional.<String>absent());
         bmp.recycle();
     }
 
@@ -1571,14 +1618,17 @@ public class Pokefly extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             Bitmap bitmap = (Bitmap) intent.getParcelableExtra(KEY_BITMAP);
-            String ss_file = intent.getStringExtra(KEY_SS_FILE);
-            if (ss_file == null) {
-                ss_file = "";
-            }
             if (bitmap == null) {
                 return;
             }
-            scanPokemon(bitmap, ss_file);
+            String screenShotPathRaw = intent.getStringExtra(KEY_SCREENSHOT_FILE);
+            Optional<String> screenShotPath;
+            if (screenShotPathRaw != null) {
+                screenShotPath = Optional.of(screenShotPathRaw);
+            } else {
+                screenShotPath = Optional.absent();
+            }
+            scanPokemon(bitmap, screenShotPath);
             bitmap.recycle();
         }
     };
@@ -1598,14 +1648,16 @@ public class Pokefly extends Service {
 
                     pokemonName = intent.getStringExtra(KEY_SEND_INFO_NAME);
                     candyName = intent.getStringExtra(KEY_SEND_INFO_CANDY);
-                    ssFile = intent.getStringExtra(KEY_SEND_SCREENSHOT_FILE);
 
+                    @SuppressWarnings("unchecked") Optional<String> lScreenShotFile =
+                            (Optional<String>) intent.getSerializableExtra(KEY_SEND_SCREENSHOT_FILE);
                     @SuppressWarnings("unchecked") Optional<Integer> lPokemonCP =
                             (Optional<Integer>) intent.getSerializableExtra(KEY_SEND_INFO_CP);
                     @SuppressWarnings("unchecked") Optional<Integer> lPokemonHP =
                             (Optional<Integer>) intent.getSerializableExtra(KEY_SEND_INFO_HP);
                     pokemonCP = lPokemonCP;
                     pokemonHP = lPokemonHP;
+                    screenShotPath = lScreenShotFile;
 
                     estimatedPokemonLevel = intent.getDoubleExtra(KEY_SEND_INFO_LEVEL, estimatedPokemonLevel);
                     if (estimatedPokemonLevel < 1.0) {

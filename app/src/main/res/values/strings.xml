@@ -70,10 +70,11 @@
     <string name="cancel">Cancel</string>
     <string name="check_iv">Check IV</string>
     <string name="notification_title">GoIV Running - Level %1$s</string>
-    <string name="notification_text">Tap to open</string>
+    <string name="notification_open_app">Open app</string>
     <string name="close">Close</string>
     <string name="main_permission">Grant Permissions</string>
     <string name="main_start">Start</string>
+    <string name="main_starting">Starting…</string>
     <string name="main_stop">Stop</string>
     <string name="back">Back</string>
     <string name="accept_screen_capture">Accept screen capture</string>
@@ -83,7 +84,7 @@
     <string name="confirmation_dialog_setting_title">Confirmation dialog</string>
     <string name="confirmation_dialog_setting_summary">Allow editing of Pokémon information before calculating IV</string>
     <string name="manual_screenshot_mode_setting_title">Use screenshots to calculate IV</string>
-    <string name="manual_screenshot_mode_setting_summary">Save battery life by scanning screenshots instead of autodetecting. This setting has to be enabled for Android KitKat and below</string>
+    <string name="manual_screenshot_mode_setting_summary">Save battery life by scanning screenshots instead of auto detecting. This setting has to be enabled for Android KitKat and below</string>
     <string name="delete_screenshots_setting_title">Delete screenshots</string>
     <string name="delete_screenshots_setting_summary">Automatically delete screenshots taken by GoIV</string>
     <string name="copy_to_clipboard_setting_title">Copy to clipboard</string>
@@ -125,9 +126,9 @@
     <string name="atk">ATK</string>
     <string name="def">DEF</string>
     <string name="sta">STA</string>
-    <string name="iv">IV</string>
-    <string name="percent">%d%%</string>
-    <string name="unknown_percent">"?%"</string>
+    <string name="iv" translatable="false">IV</string>
+    <string name="percent" translatable="false">%d%%</string>
+    <string name="unknown_percent" translatable="false">"?%"</string>
     <string name="dynamic_combat_power">Dynamic Combat Power</string>
     <string name="compared_to_perfect_iv">% Compared To Perfect IV</string>
 </resources>

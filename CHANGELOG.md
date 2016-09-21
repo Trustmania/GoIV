@@ -1,12 +1,72 @@
 # Changelog
 
+## 3.2.0
+
+### Features
+* Major battery improvements: **The screen scanning logic will now only activate
+  after you touch the screen**. So instead of scanning every 750 milliseconds, it
+  will only scan a couple of times with a short delay when you touch the screen.
+  If you tap it too fast, it'll wait for you to be done tapping before scanning.
+  So, gym fights should cause zero scanning.
+
+  Hence:
+  **Tap the screen once if the IV button doesn't show up when it should.**
+
+* More appraisal narrowing: You can now use all the information given by the
+  team leader to narrow down the the iv possibilities for your pokemon. You'll
+  have to choose your team in the app start screen to get the right phrases to
+  pick from. When you expand the appraisal box now, the overlay will move to the
+  top of your screen so that you can click the appraisal info while the overlay
+  is active.
+
+* Easier to correct pokemon scan: Identified pokemon dropdown only shows
+  evolution line as identified from candy If evolution line is wrongly
+  identified, can search for the pokemon with keyboard.
+
+* UI improvement for level slider in evolution and powerup result box: There's
+  now a yellow background to show the limit of where your current trainer is too
+  low to level up your pokemon.
+
+* Notification actions: Now GoIV can be stopped from the notification itself.
+
+### Quality of life changes
+
+* Updated translation strings
+
+* Cleaner scan error handling: If a scan error occurs, the field will be left
+  blank to make it easier for you to see and deal with.
+
+* Full IV possibilities list is now sorted by perfection %
+
+* "Show all IV combinations" hidden if no / too many IV combinations.
+
+### Bugfixes
+* Screenshot mode should now work on most (all?) devices!
+* Fix crash on levels 39/40.
+* Overlay moves up when you input stuff.
+* Crashfixes on some OCR error scans.
+* Refine by power up appears correctly when pokemon is evolved.
+* And more.
+
+### Behind the scenes
+* Lots of code cleanup (Though we're not done yet)
+
+### Known bugs
+* At level 30, level 30 pokemons are detected as level 30.5, and this can cause
+  spurious failures to find combinations or incorrect results. Adjusting the
+  level to 30 manually gives correct calculation results. See
+  screenshots [here](https://github.com/farkam135/GoIV/issues/455) to see the
+  results appears.
+
+---
+
 ## 3.1.0
 
 ### Features & Improvements
 * New layout for when only one IV combination is possible
 * Tweaked layout and sized of input dialog
-* Show all ivs is color coded & layout improved
-* Hides "refine by power up" automatically if it cant be used
+* Show all IVs is color coded & layout improved
+* Hides "refine by power up" automatically if it can't be used
 
 ### Stability and Speed Improvements
 * Fixes several crash/hang bugs which caused the application to become unresponsive

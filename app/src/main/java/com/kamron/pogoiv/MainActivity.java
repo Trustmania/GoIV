@@ -18,7 +18,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -68,11 +67,19 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean batterySaver;
 
-    private boolean pokeFlyRunning = false;
     private int trainerLevel;
+
+    private Button launchButton;
 
     private final Point arcInit = new Point();
     private int arcRadius;
+    private final BroadcastReceiver pokeflyStateChanged = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateLaunchButtonText(Pokefly.isRunning());
+            launchButton.setEnabled(true);
+        }
+    };
     private final BroadcastReceiver showUpdateDialog = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -109,6 +116,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return false;
+    }
+
+    private boolean hasAllPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            return false;
+        }
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_DENIED) {
+            return false;
+        }
+        return true;
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -151,12 +169,12 @@ public class MainActivity extends AppCompatActivity {
         Display disp = windowManager.getDefaultDisplay();
         disp.getRealMetrics(rawDisplayMetrics);
 
-        Button launch = (Button) findViewById(R.id.start);
-        launch.setOnClickListener(new View.OnClickListener() {
+        launchButton = (Button) findViewById(R.id.start);
+        launchButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                if (((Button) v).getText().toString().equals(getString(R.string.main_permission))) {
+                if (!hasAllPermissions()) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(
                             MainActivity.this)) {
                         Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -168,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                         ActivityCompat.requestPermissions(MainActivity.this,
                                 new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_STORAGE_REQ_CODE);
                     }
-                } else if (((Button) v).getText().toString().equals(getString(R.string.main_start))) {
+                } else if (!Pokefly.isRunning()) {
                     batterySaver = settings.isManualScreenshotModeEnabled();
                     setupDisplaySizeInfo();
                     trainerLevel = setupTrainerLevel(npTrainerLevel);
@@ -180,19 +198,17 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         startScreenService();
                     }
-                } else if (((Button) v).getText().toString().equals(getString(R.string.main_stop))) {
+                } else {
                     stopService(new Intent(MainActivity.this, Pokefly.class));
                     if (screen != null) {
                         screen.exit();
                     }
-                    pokeFlyRunning = false;
-                    ((Button) v).setText(getString(R.string.main_start));
                 }
             }
         });
 
-        checkPermissions(launch);
-
+        LocalBroadcastManager.getInstance(this).registerReceiver(pokeflyStateChanged,
+                new IntentFilter(Pokefly.ACTION_UPDATE_UI));
         LocalBroadcastManager.getInstance(this).registerReceiver(showUpdateDialog,
                 new IntentFilter(ACTION_SHOW_UPDATE_DIALOG));
 
@@ -274,6 +290,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        /*
+         * This intent will update the button label, but later. This matters
+         * when we start Pokefly: onResume can get called right away after
+         * sending that intent, when Pokefly.isRunning is still false, so an
+         * immediate update will reset the label to "START" while the actual
+         * meaning is "STOP".
+         * The new intent created here is delivered after the intent to start
+         * Pokefly (because intents are delivered in order). The ordering is not
+         * really documented, but appears likely enough to work in principle,
+         * and it works well enough in practice:
+         * http://stackoverflow.com/a/28513424/53974. Since this is mostly a UI
+         * issue, this fix should be good enough.
+         */
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Pokefly.ACTION_UPDATE_UI));
+
         settings = GoIVSettings.getInstance(MainActivity.this);
     }
 
@@ -288,16 +320,25 @@ public class MainActivity extends AppCompatActivity {
      * Starts the PokeFly background service which contains overlay logic.
      */
     private void startPokeFly() {
-        ((Button) findViewById(R.id.start)).setText(R.string.main_stop);
+        launchButton.setText(R.string.main_starting);
+        launchButton.setEnabled(false);
 
         int statusBarHeight = getStatusBarHeight();
         Intent intent = Pokefly.createIntent(this, trainerLevel, statusBarHeight, batterySaver);
         startService(intent);
 
-        pokeFlyRunning = true;
-
         if (settings.shouldLaunchPokemonGo()) {
             openPokemonGoApp();
+        }
+    }
+
+    private void updateLaunchButtonText(boolean isPokeflyRunning) {
+        if (!hasAllPermissions()) {
+            launchButton.setText(R.string.main_permission);
+        } else if (isPokeflyRunning) {
+            launchButton.setText(R.string.main_stop);
+        } else {
+            launchButton.setText(R.string.main_start);
         }
     }
 
@@ -311,32 +352,16 @@ public class MainActivity extends AppCompatActivity {
         return "Error while getting version name";
     }
 
-    /**
-     * Checks to see if all runtime permissions are granted,
-     * if not change button text to Grant Permissions.
-     *
-     * @param launch The start button to change the text of
-     */
-    private void checkPermissions(Button launch) {
-        //Check Permissions
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            launch.setText(getString(R.string.main_permission));
-        } else if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_DENIED) {
-            launch.setText(getString(R.string.main_permission));
-        }
-    }
-
     @Override
     public void onDestroy() {
-        if (pokeFlyRunning) {
+        if (Pokefly.isRunning()) {
             stopService(new Intent(MainActivity.this, Pokefly.class));
-            pokeFlyRunning = false;
         }
         if (screen != null) {
             screen.exit();
         }
 
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(pokeflyStateChanged);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(showUpdateDialog);
         super.onDestroy();
     }
@@ -345,13 +370,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
-            if (!Settings.canDrawOverlays(this)) {
-                // SYSTEM_ALERT_WINDOW permission not granted...
-                ((Button) findViewById(R.id.start)).setText(getString(R.string.main_permission));
-            } else if (ContextCompat.checkSelfPermission(MainActivity.this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                ((Button) findViewById(R.id.start)).setText(getString(R.string.main_start));
-            }
+            updateLaunchButtonText(false);
+
         } else if (requestCode == SCREEN_CAPTURE_REQ_CODE) {
             if (resultCode == RESULT_OK) {
                 MediaProjectionManager projectionManager = (MediaProjectionManager) getSystemService(
@@ -361,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
 
                 startPokeFly();
             } else {
-                ((Button) findViewById(R.id.start)).setText(getString(R.string.main_start));
+                updateLaunchButtonText(false);
             }
         }
     }
@@ -381,13 +401,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         if (requestCode == WRITE_STORAGE_REQ_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (Settings.canDrawOverlays(this) && ContextCompat.checkSelfPermission(MainActivity.this,
-                        Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                    // SYSTEM_ALERT_WINDOW permission not granted...
-                    ((Button) findViewById(R.id.start)).setText(getString(R.string.main_start));
-                }
-            }
+            updateLaunchButtonText(false);
         }
     }
 
@@ -396,26 +410,9 @@ public class MainActivity extends AppCompatActivity {
      */
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void startScreenService() {
-        ((Button) findViewById(R.id.start)).setText(R.string.accept_screen_capture);
+        launchButton.setText(R.string.accept_screen_capture);
         MediaProjectionManager projectionManager = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);
         startActivityForResult(projectionManager.createScreenCaptureIntent(), SCREEN_CAPTURE_REQ_CODE);
     }
-
-    private String getRealPathFromUri(Context context, Uri contentUri) {
-        Cursor cursor = null;
-        try {
-            String[] proj = {MediaStore.Images.Media.DATA};
-            cursor = context.getContentResolver().query(contentUri, proj, null, null,
-                    MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            return cursor.getString(column_index);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
 }

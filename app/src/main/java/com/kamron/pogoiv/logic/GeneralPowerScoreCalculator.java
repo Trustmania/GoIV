@@ -34,6 +34,18 @@ public class GeneralPowerScoreCalculator {
     }
 
     /**
+     * Get the average general score for all possible iv combinations for a pokemon
+     *
+     * @param powerScore the PowerScore of the pokemon
+     * @param pokemon    the pokemon to get the % close to perfection from
+     * @return A double that gets closer to 100 when the pokemon has perfect ivs
+     */
+    public double getPercentOfPerfect(double powerScore, Pokemon pokemon) {
+        double maxPowerScore = getPokemonMaxGeneralScore(pokemon);
+        return (powerScore / maxPowerScore) * 100;
+    }
+
+    /**
      * Gets the general score a pokemon would have if it had the ivs 8,7,7 (48.888% ivs).
      *
      * @param p the pokemon

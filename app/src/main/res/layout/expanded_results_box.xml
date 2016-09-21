@@ -34,6 +34,65 @@
             android:textSize="@dimen/resultExpandedTextSize"/>
 
     </LinearLayout>
+    <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:text="@string/dynamic_combat_power"
+        android:textColor="@color/importantText"
+        android:textSize="@dimen/resultExpandedTextSize"/>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        />
+
+    <TextView
+        android:id="@+id/exResultsDynamicCombatPower"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:text="#ofDCP"
+        android:textColor="@color/importantText"
+        android:textSize="@dimen/resultExpandedTextSize"/>
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:text="@string/compared_to_perfect_iv"
+            android:textColor="@color/importantText"
+            android:textSize="@dimen/resultExpandedTextSize"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            />
+
+        <TextView
+            android:id="@+id/exResultsDynamicCombatPowerRelative"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="#%perfect"
+            android:textColor="@color/importantText"
+            android:textSize="@dimen/resultExpandedTextSize"/>
+
+    </LinearLayout>
+
 
     <LinearLayout
         android:layout_width="match_parent"

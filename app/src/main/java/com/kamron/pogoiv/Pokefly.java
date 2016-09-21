@@ -51,6 +51,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.kamron.pogoiv.logic.CPRange;
 import com.kamron.pogoiv.logic.Data;
+import com.kamron.pogoiv.logic.GeneralPowerScoreCalculator;
 import com.kamron.pogoiv.logic.IVCombination;
 import com.kamron.pogoiv.logic.IVScanResult;
 import com.kamron.pogoiv.logic.PokeInfoCalculator;
@@ -190,6 +191,13 @@ public class Pokefly extends Service {
     TextView resultsAvePercentage;
     @BindView(R.id.resultsMaxPercentage)
     TextView resultsMaxPercentage;
+
+    @BindView(R.id.exResultsDynamicCombatPower)
+    TextView exResultsDynamicCombatPower;
+
+    @BindView(R.id.exResultsDynamicCombatPowerRelative)
+    TextView exResultsDynamicCombatPowerRelative;
+
     @BindView(R.id.resultsPokemonLevel)
     TextView resultsPokemonLevel;
     @BindView(R.id.exResCandy)
@@ -1072,6 +1080,25 @@ public class Pokefly extends Service {
     }
 
     /**
+     * Sets the general power score indicating box information in the powerup and evolution expanded box.
+     * @param ivScanResult The ivScanresult to base the information on.
+     * @param selectedPokemon The pokemon to base the information for the textfields on.
+     */
+    private void setPowerScoreFields(IVScanResult ivScanResult, Pokemon selectedPokemon) {
+        GeneralPowerScoreCalculator gpsc = new GeneralPowerScoreCalculator();
+        double powerScore = gpsc.getAverageGeneralScore(ivScanResult.iVCombinations, selectedPokemon);
+        double percentPerfect = gpsc.getPercentOfPerfect(powerScore, selectedPokemon) + 0.5;
+
+        //adding 0.5 ensures that when casting to int, it's rounded correctly.
+        //It's cast to int to remove the decimals.
+        String powerString = Integer.toString((int) (powerScore + 0.5));
+        String percentPerfectString = Integer.toString((int) (percentPerfect + 0.5)) + "%";
+
+        exResultsDynamicCombatPower.setText(powerString);
+        exResultsDynamicCombatPowerRelative.setText(percentPerfectString);
+    }
+
+    /**
      * Hides the "See all" iv possibilities link if the iv scan result reports that there are too many possibilities.
      *
      * @param ivScanResult The iv scan result to examine if it makes sense to have a "show all" button.
@@ -1219,6 +1246,7 @@ public class Pokefly extends Service {
         setEstimateCostTextboxes(ivScanResult, selectedLevel, selectedPokemon);
         exResLevel.setText(String.valueOf(selectedLevel));
         setEstimateLevelTextColor(selectedLevel);
+        setPowerScoreFields(ivScanResult, selectedPokemon);
     }
 
     /**

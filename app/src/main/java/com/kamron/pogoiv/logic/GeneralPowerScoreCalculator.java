@@ -85,4 +85,51 @@ public class GeneralPowerScoreCalculator {
     private double getGeneralScore(IVCombination ivC, Pokemon p) {
         return (p.baseAttack + ivC.att) * (p.baseDefense + ivC.def) * (p.baseStamina + ivC.sta) / 10000;
     }
+
+    /**
+     * Get a string representation of a pokemon rating, for example "A" or "B+".
+     * @param score the general score to translate to a string.
+     * @return A string S,A,B,C,D which might have a plus or minus after.
+     */
+    public String getRating(double score){
+        int ap = 1050;
+        int a = 950;
+        int am = 900;
+        int bp = 800;
+        int b = 750;
+        int bm = 700;
+        int cp = 650;
+        int c = 600;
+        int cm = 550;
+        int dp = 500;
+        int d = 450;
+        int dm = 350;
+        int ep = 300;
+        int e = 200;
+        int em = 150;
+        int fp = 100;
+        int f = 50;
+        int fm = 0;
+
+        if (score > ap) return "A+";
+        if (score > a) return "A";
+        if (score > am) return "A-";
+        if (score > bp) return "B+";
+        if (score > b) return "B";
+        if (score > bm) return "B-";
+        if (score > cp) return "C+";
+        if (score > c) return "C";
+        if (score > cm) return "C-";
+        if (score > dp) return "D+";
+        if (score > d) return "D";
+        if (score > dm) return "D-";
+        if (score > ep) return "E+";
+        if (score > e) return "E";
+        if (score > em) return "E-";
+        if (score > fp) return "F+";
+        if (score > f) return "F";
+        if (score > fm) return "F-";
+
+        return "??";
+    }
 }

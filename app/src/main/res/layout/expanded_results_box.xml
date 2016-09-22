@@ -43,7 +43,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="left"
-        android:text="@string/dynamic_combat_power"
+        android:text="@string/pokemon_stat_tier"
         android:textColor="@color/importantText"
         android:textSize="@dimen/resultExpandedTextSize"/>
 
@@ -58,7 +58,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="right"
-        android:text="#ofDCP"
+        android:text="#Rating"
         android:textColor="@color/importantText"
         android:textSize="@dimen/resultExpandedTextSize"/>
 

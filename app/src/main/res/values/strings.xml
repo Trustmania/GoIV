@@ -129,6 +129,6 @@
     <string name="iv" translatable="false">IV</string>
     <string name="percent" translatable="false">%d%%</string>
     <string name="unknown_percent" translatable="false">"?%"</string>
-    <string name="dynamic_combat_power">Dynamic Combat Power</string>
+    <string name="pokemon_stat_tier">Stat Tier</string>
     <string name="compared_to_perfect_iv">% Compared To Perfect IV</string>
 </resources>

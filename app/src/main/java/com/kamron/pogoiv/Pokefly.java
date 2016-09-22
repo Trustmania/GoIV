@@ -31,6 +31,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -67,6 +68,8 @@ import com.kamron.pogoiv.widgets.PokemonSpinnerAdapter;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 
 import butterknife.BindView;
@@ -1111,6 +1114,7 @@ public class Pokefly extends Service {
     private void populateResultsBox(IVScanResult ivScanResult) {
         ivScanResult.sortCombinations();
         populateResultsHeader(ivScanResult);
+        debugstuffthatyoushouldblamenahojjjenifitsstillhere(ivScanResult);
 
 
         if (ivScanResult.getCount() == 1) {
@@ -1126,6 +1130,39 @@ public class Pokefly extends Service {
         populatePrevScanNarrowing();
     }
 
+    private void debugstuffthatyoushouldblamenahojjjenifitsstillhere(IVScanResult ivScanResult) {
+        final GeneralPowerScoreCalculator gpsc = new GeneralPowerScoreCalculator();
+        int pokeNum = pokeInfoCalculator.getPokedex().size();
+        double max = 0;
+        double min = Integer.MAX_VALUE;
+        double sum = 0;
+        ArrayList<Pokemon> sortedByTier = new ArrayList();
+        for (Pokemon poke:pokeInfoCalculator.getPokedex()){
+            sortedByTier.add(poke);
+        }
+        Collections.sort(sortedByTier, new Comparator<Pokemon>() {
+            @Override public int compare(Pokemon o1, Pokemon o2) {
+                return (int)(gpsc.getPokemonAverageGeneralScore(o1)-gpsc.getPokemonAverageGeneralScore(o2));
+            }
+        });
+
+
+        for (Pokemon poke : sortedByTier){
+            double stats = gpsc.getPokemonAverageGeneralScore(poke);
+            if (stats > max) max = stats;
+            if (stats < min) min = stats;
+            sum += stats;
+            Log.d("nahojjjenRating", "General Score: " + stats + " Max CP" + pokeInfoCalculator.getCpRangeAtLevel
+                    (poke,15,15,15,15,15,15,40)+ " Name: " + poke
+                    .name + " Tier: "
+                    + "" +
+                    gpsc
+                    .getRating
+                    (stats));
+        }
+        Log.d("nahojjjenRating", "Average score: " + sum/pokeNum);
+    }
+
     /**
      * Sets the general power score indicating box information in the powerup and evolution expanded box.
      * @param ivScanResult The ivScanresult to base the information on.
@@ -1136,9 +1173,10 @@ public class Pokefly extends Service {
         double powerScore = gpsc.getAverageGeneralScore(ivScanResult.iVCombinations, selectedPokemon);
         double percentPerfect = gpsc.getPercentOfPerfect(powerScore, selectedPokemon) + 0.5;
 
+        //The rating like B+ or A-
+        String powerString = gpsc.getRating(powerScore);
         //adding 0.5 ensures that when casting to int, it's rounded correctly.
         //It's cast to int to remove the decimals.
-        String powerString = Integer.toString((int) (powerScore + 0.5));
         String percentPerfectString = Integer.toString((int) (percentPerfect + 0.5)) + "%";
 
         exResultsDynamicCombatPower.setText(powerString);

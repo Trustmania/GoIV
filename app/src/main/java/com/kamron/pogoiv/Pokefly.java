@@ -1114,7 +1114,7 @@ public class Pokefly extends Service {
     private void populateResultsBox(IVScanResult ivScanResult) {
         ivScanResult.sortCombinations();
         populateResultsHeader(ivScanResult);
-        debugstuffthatyoushouldblamenahojjjenifitsstillhere(ivScanResult);
+        //debugstuffthatyoushouldblamenahojjjenifitsstillhere(ivScanResult);
 
 
         if (ivScanResult.getCount() == 1) {
@@ -1151,12 +1151,8 @@ public class Pokefly extends Service {
 
 
         for (Pokemon poke : sortedByTier) {
-            double stats = gpsc.getPokemonAverageGeneralScore(poke);
-            if (stats > max) max = stats;
-            if (stats < min) min = stats;
-            sum += stats;
             double cp = pokeInfoCalculator.getCpRangeAtLevel(poke, 15, 15, 15, 15, 15, 15, 40).high;
-            Log.d("nahojjjenRating", "General Score: " + stats + " Max CP" + cp + " Name: " + poke
+            Log.d("nahojjjenRating", " Max CP" + cp + " Name: " + poke
                     .name + " Tier: " + "" + gpsc.getRating(cp));
         }
         Log.d("nahojjjenRating", "Average score: " + sum / pokeNum);
@@ -1169,21 +1165,26 @@ public class Pokefly extends Service {
      */
     private void setPowerScoreFields(IVScanResult ivScanResult, Pokemon selectedPokemon) {
         GeneralPowerScoreCalculator gpsc = new GeneralPowerScoreCalculator();
-        double powerScore = gpsc.getAverageGeneralScore(ivScanResult.iVCombinations, selectedPokemon);
-        double percentPerfect = gpsc.getPercentOfPerfect(powerScore, selectedPokemon) + 0.5;
+        //get the highest and lowest cp estimate for selectedpokemon on level 40
+        double cpHigh = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack, ivScanResult
+                        .lowDefense,
+                ivScanResult.lowStamina, ivScanResult.highAttack, ivScanResult.highDefense, ivScanResult.highStamina,
+                40).high;
+        double cpLow = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack, ivScanResult
+                        .lowDefense,
+                ivScanResult.lowStamina, ivScanResult.highAttack, ivScanResult.highDefense, ivScanResult.highStamina,
+                40)
+                .low;
+
+        double cpAverage = (cpHigh + cpLow) / 2;
+
+        double percentPerfectLow = gpsc.getPercentOfPerfect(cpAverage, pokeInfoCalculator, selectedPokemon);
 
         //The rating like B+ or A-
-        double cpHigh = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack,ivScanResult
-                .lowDefense,
-                ivScanResult.lowStamina,ivScanResult.highAttack,ivScanResult.highDefense,ivScanResult.highStamina,40).high;
-        double cpLow = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack,ivScanResult
-                        .lowDefense,
-                ivScanResult.lowStamina,ivScanResult.highAttack,ivScanResult.highDefense,ivScanResult.highStamina,40)
-                .low;
-        double cpAverage = (cpHigh + cpLow)/2;
         String powerString = gpsc.getRating(cpAverage);
         //adding 0.5 ensures that when casting to int, it's rounded correctly.
-        String percentPerfectString = Integer.toString((int) (percentPerfect + 0.5)) + "%";
+        int percentPerfect = (int) ((percentPerfectLow * 100) + 0.5);
+        String percentPerfectString = percentPerfect + "%";
 
         exResultsDynamicCombatPower.setText(powerString);
         exResultsDynamicCombatPowerRelative.setText(percentPerfectString);

@@ -1142,25 +1142,24 @@ public class Pokefly extends Service {
         }
         Collections.sort(sortedByTier, new Comparator<Pokemon>() {
             @Override public int compare(Pokemon o1, Pokemon o2) {
-                return (int)(gpsc.getPokemonAverageGeneralScore(o1)-gpsc.getPokemonAverageGeneralScore(o2));
+                return (int) (pokeInfoCalculator.getCpRangeAtLevel
+                        (o1, 15, 15, 15, 15, 15, 15, 40).high - pokeInfoCalculator.getCpRangeAtLevel
+                        (o2, 15, 15, 15, 15, 15, 15, 40).high);
+                //return (int)(gpsc.getPokemonAverageGeneralScore(o1)-gpsc.getPokemonAverageGeneralScore(o2));
             }
         });
 
 
-        for (Pokemon poke : sortedByTier){
+        for (Pokemon poke : sortedByTier) {
             double stats = gpsc.getPokemonAverageGeneralScore(poke);
             if (stats > max) max = stats;
             if (stats < min) min = stats;
             sum += stats;
-            Log.d("nahojjjenRating", "General Score: " + stats + " Max CP" + pokeInfoCalculator.getCpRangeAtLevel
-                    (poke,15,15,15,15,15,15,40)+ " Name: " + poke
-                    .name + " Tier: "
-                    + "" +
-                    gpsc
-                    .getRating
-                    (stats));
+            double cp = pokeInfoCalculator.getCpRangeAtLevel(poke, 15, 15, 15, 15, 15, 15, 40).high;
+            Log.d("nahojjjenRating", "General Score: " + stats + " Max CP" + cp + " Name: " + poke
+                    .name + " Tier: " + "" + gpsc.getRating(cp));
         }
-        Log.d("nahojjjenRating", "Average score: " + sum/pokeNum);
+        Log.d("nahojjjenRating", "Average score: " + sum / pokeNum);
     }
 
     /**
@@ -1174,9 +1173,16 @@ public class Pokefly extends Service {
         double percentPerfect = gpsc.getPercentOfPerfect(powerScore, selectedPokemon) + 0.5;
 
         //The rating like B+ or A-
-        String powerString = gpsc.getRating(powerScore);
+        double cpHigh = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack,ivScanResult
+                .lowDefense,
+                ivScanResult.lowStamina,ivScanResult.highAttack,ivScanResult.highDefense,ivScanResult.highStamina,40).high;
+        double cpLow = pokeInfoCalculator.getCpRangeAtLevel(selectedPokemon, ivScanResult.lowAttack,ivScanResult
+                        .lowDefense,
+                ivScanResult.lowStamina,ivScanResult.highAttack,ivScanResult.highDefense,ivScanResult.highStamina,40)
+                .low;
+        double cpAverage = (cpHigh + cpLow)/2;
+        String powerString = gpsc.getRating(cpAverage);
         //adding 0.5 ensures that when casting to int, it's rounded correctly.
-        //It's cast to int to remove the decimals.
         String percentPerfectString = Integer.toString((int) (percentPerfect + 0.5)) + "%";
 
         exResultsDynamicCombatPower.setText(powerString);

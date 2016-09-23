@@ -88,47 +88,47 @@ public class GeneralPowerScoreCalculator {
 
     /**
      * Get a string representation of a pokemon rating, for example "A" or "B+".
-     * @param score the general score to translate to a string.
+     * @param combatPower the general combatPower to translate to a tier string.
      * @return A string S,A,B,C,D which might have a plus or minus after.
      */
-    public String getRating(double score){
-        int ap = 1050;
-        int a = 950;
-        int am = 900;
-        int bp = 800;
-        int b = 750;
-        int bm = 700;
-        int cp = 650;
-        int c = 600;
-        int cm = 550;
-        int dp = 500;
-        int d = 450;
-        int dm = 350;
-        int ep = 300;
-        int e = 200;
-        int em = 150;
-        int fp = 100;
-        int f = 50;
+    public String getRating(double combatPower){
+        int ap = 3100; //
+        int a = 2650;
+        int am = 2550;
+        int bp = 2200;
+        int b = 2100;
+        int bm = 2000;
+        int cp = 1900;
+        int c = 1800;
+        int cm = 1700;
+        int dp = 1600;
+        int d = 1500;
+        int dm = 1400;
+        int ep = 1300;
+        int e = 1200;
+        int em = 1100;
+        int fp = 1000;
+        int f = 800;
         int fm = 0;
 
-        if (score > ap) return "A+";
-        if (score > a) return "A";
-        if (score > am) return "A-";
-        if (score > bp) return "B+";
-        if (score > b) return "B";
-        if (score > bm) return "B-";
-        if (score > cp) return "C+";
-        if (score > c) return "C";
-        if (score > cm) return "C-";
-        if (score > dp) return "D+";
-        if (score > d) return "D";
-        if (score > dm) return "D-";
-        if (score > ep) return "E+";
-        if (score > e) return "E";
-        if (score > em) return "E-";
-        if (score > fp) return "F+";
-        if (score > f) return "F";
-        if (score > fm) return "F-";
+        if (combatPower > ap) return "A+";
+        if (combatPower > a) return "A";
+        if (combatPower > am) return "A-";
+        if (combatPower > bp) return "B+";
+        if (combatPower > b) return "B";
+        if (combatPower > bm) return "B-";
+        if (combatPower > cp) return "C+";
+        if (combatPower > c) return "C";
+        if (combatPower > cm) return "C-";
+        if (combatPower > dp) return "D+";
+        if (combatPower > d) return "D";
+        if (combatPower > dm) return "D-";
+        if (combatPower > ep) return "E+";
+        if (combatPower > e) return "E";
+        if (combatPower > em) return "E-";
+        if (combatPower > fp) return "F+";
+        if (combatPower > f) return "F";
+        if (combatPower > fm) return "F-";
 
         return "??";
     }
